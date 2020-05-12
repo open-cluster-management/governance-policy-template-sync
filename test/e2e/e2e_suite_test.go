@@ -3,7 +3,6 @@
 package e2e
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/user"
@@ -12,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/open-cluster-management/governance-policy-propagator/test/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,15 +24,16 @@ import (
 )
 
 var (
-	testNamespace         string
-	clientManaged         kubernetes.Interface
-	clientManagedDynamic  dynamic.Interface
-	gvrPolicy             schema.GroupVersionResource
-	gvrPlacementBinding   schema.GroupVersionResource
-	gvrPlacementRule      schema.GroupVersionResource
-	kubeconfigHub         string
-	kubeconfigManaged     string
-	defaultTimeoutSeconds int
+	testNamespace             string
+	clientManaged             kubernetes.Interface
+	clientManagedDynamic      dynamic.Interface
+	gvrPolicy                 schema.GroupVersionResource
+	gvrPlacementBinding       schema.GroupVersionResource
+	gvrPlacementRule          schema.GroupVersionResource
+	gvrTrustedContainerPolicy schema.GroupVersionResource
+	kubeconfigHub             string
+	kubeconfigManaged         string
+	defaultTimeoutSeconds     int
 
 	defaultImageRegistry       string
 	defaultImagePullSecretName string
@@ -46,7 +47,6 @@ func TestE2e(t *testing.T) {
 func init() {
 	klog.SetOutput(GinkgoWriter)
 	klog.InitFlags(nil)
-	flag.StringVar(&kubeconfigManaged, "kubeconfig_managed", "../../kubeconfig_managed", "Location of the kubeconfig to use; defaults to KUBECONFIG if not set")
 }
 
 var _ = BeforeSuite(func() {
@@ -54,8 +54,9 @@ var _ = BeforeSuite(func() {
 	gvrPolicy = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "policies"}
 	gvrPlacementBinding = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "placementbindings"}
 	gvrPlacementRule = schema.GroupVersionResource{Group: "apps.open-cluster-management.io", Version: "v1", Resource: "placementrules"}
-	clientManaged = NewKubeClient("", kubeconfigManaged, "")
-	clientManagedDynamic = NewKubeClientDynamic("", kubeconfigManaged, "")
+	gvrTrustedContainerPolicy = schema.GroupVersionResource{Group: "policies.ibm.com", Version: "v1alpha1", Resource: "trustedcontainerpolicies"}
+	clientManaged = NewKubeClient("", "", "")
+	clientManagedDynamic = NewKubeClientDynamic("", "", "")
 	defaultImageRegistry = "quay.io/open-cluster-management"
 	defaultImagePullSecretName = "multiclusterhub-operator-pull-secret"
 	testNamespace = "managed"
@@ -69,7 +70,8 @@ var _ = BeforeSuite(func() {
 			},
 		})).NotTo(BeNil())
 	}
-
+	By("Create trustedcontainerpolicy CRD")
+	utils.Kubectl("apply", "-f", "../resources/policies.ibm.com_trustedcontainerpolicies_crd.yaml")
 })
 
 func NewKubeClient(url, kubeconfig, context string) kubernetes.Interface {

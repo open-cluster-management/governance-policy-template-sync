@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	policiesv1 "github.com/open-cluster-management/governance-policy-propagator/pkg/apis/policies/v1"
+	"github.com/open-cluster-management/governance-policy-propagator/pkg/controller/common"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,8 +74,6 @@ type ReconcilePolicy struct {
 
 // Reconcile reads that state of the cluster for a Policy object and makes changes based on the state read
 // and what is in the Policy.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -98,7 +97,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 	}
 
 	// found
-	// loop throught policy templates
+	// loop through policy templates
 	for _, policyT := range instance.Spec.PolicyTemplates {
 		clientset := kubernetes.NewForConfigOrDie(r.config)
 		dd := clientset.Discovery()
@@ -124,10 +123,9 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 
 		}
 		dClient, err := dynamic.NewForConfig(r.config)
-		// if err != nil {
-		// 	log.Error(err, "")
-		// 	os.Exit(1)
-		// }
+		if err != nil {
+			reqLogger.Error(err, "Failed to create dynamic client")
+		}
 		res := dClient.Resource(rsrc).Namespace(instance.GetNamespace())
 		tName := object.(metav1.Object).GetName()
 		tObjectUnstructured := &unstructured.Unstructured{}
@@ -144,12 +142,16 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 				labels := tObjectUnstructured.GetLabels()
 				if labels == nil {
 					labels = map[string]string{
-						"cluster-name":      instance.GetLabels()["cluster-name"],
-						"cluster-namespace": instance.GetLabels()["cluster-namespace"],
+						"cluster-name":               instance.GetLabels()[common.ClusterNameLabel],
+						common.ClusterNameLabel:      instance.GetLabels()[common.ClusterNameLabel],
+						"cluster-namespace":          instance.GetLabels()[common.ClusterNamespaceLabel],
+						common.ClusterNamespaceLabel: instance.GetLabels()[common.ClusterNamespaceLabel],
 					}
 				} else {
-					labels["cluster-name"] = instance.GetLabels()["cluster-name"]
-					labels["cluster-namespace"] = instance.GetLabels()["cluster-namespace"]
+					labels["cluster-name"] = instance.GetLabels()[common.ClusterNameLabel]
+					labels[common.ClusterNameLabel] = instance.GetLabels()[common.ClusterNameLabel]
+					labels["cluster-namespace"] = instance.GetLabels()[common.ClusterNamespaceLabel]
+					labels[common.ClusterNamespaceLabel] = instance.GetLabels()[common.ClusterNamespaceLabel]
 				}
 				tObjectUnstructured.SetLabels(labels)
 				tObjectUnstructured.SetOwnerReferences([]metav1.OwnerReference{plcOwnerReferences})
@@ -173,6 +175,12 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 		// got object, need to compare and update
 		eObjectUnstructured := eObject.UnstructuredContent()
+		if spec, ok := tObjectUnstructured.Object["spec"]; ok {
+			specObject := spec.(map[string]interface{})
+			if _, ok := specObject["remediationAction"]; ok {
+				specObject["remediationAction"] = instance.Spec.RemediationAction
+			}
+		}
 		if !equality.Semantic.DeepEqual(eObjectUnstructured["spec"], tObjectUnstructured.Object["spec"]) {
 			// doesn't match
 			reqLogger.Info("existing object and template don't match, updating...", "PolicyTemplateName", tName)
