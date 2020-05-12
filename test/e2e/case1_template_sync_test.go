@@ -50,9 +50,16 @@ var _ = Describe("Test spec sync", func() {
 		}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual(yamlTrustedPlc.Object["spec"]))
 	})
 	It("should contains labels from parent policy", func() {
-		By("Patching checking labels of template policy")
+		By("Checking labels of template policy")
 		plc := utils.GetWithTimeout(clientManagedDynamic, gvrPolicy, case1PolicyName, testNamespace, true, defaultTimeoutSeconds)
 		trustedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrTrustedContainerPolicy, cast1TrustedContainerPolicyName, testNamespace, true, defaultTimeoutSeconds)
-		Expect(plc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNameLabel]).To(utils.SemanticEqual(trustedPlc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNameLabel]))
+		Expect(plc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNameLabel]).To(
+			utils.SemanticEqual(trustedPlc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNameLabel]))
+		Expect(plc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNameLabel]).To(
+			utils.SemanticEqual(trustedPlc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["cluster-name"]))
+		Expect(plc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNamespaceLabel]).To(
+			utils.SemanticEqual(trustedPlc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNamespaceLabel]))
+		Expect(plc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNamespaceLabel]).To(
+			utils.SemanticEqual(trustedPlc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["cluster-namespace"]))
 	})
 })
