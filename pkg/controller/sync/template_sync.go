@@ -144,14 +144,22 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		} else {
 			// mapping not found, should create a violation event
 			reqLogger.Error(err, "Mapping not found...")
-			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Mapping not found with err: %s", err))
-			return reconcile.Result{}, nil
+			r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
+				fmt.Sprintf("Mapping not found with err: %s", err))
+			break
 		}
 		// fetch resource
 		res := dClient.Resource(rsrc).Namespace(instance.GetNamespace())
 		tName := object.(metav1.Object).GetName()
 		tObjectUnstructured := &unstructured.Unstructured{}
-		json.Unmarshal(policyT.ObjectDefinition.Raw, tObjectUnstructured)
+		err = json.Unmarshal(policyT.ObjectDefinition.Raw, tObjectUnstructured)
+		if err != nil {
+			// failed to decode PolicyTemplate, skipping it, should throw violation
+			reqLogger.Error(err, "Failed to unmarshal policy template...")
+			r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
+				fmt.Sprintf("Failed to unmarshal policy template with err: %s", err))
+			break
+		}
 		eObject, err := res.Get(tName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
