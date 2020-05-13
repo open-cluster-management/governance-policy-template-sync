@@ -4,6 +4,7 @@ package sync
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	policiesv1 "github.com/open-cluster-management/governance-policy-propagator/pkg/apis/policies/v1"
 	"github.com/open-cluster-management/governance-policy-propagator/pkg/controller/common"
@@ -18,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -37,7 +39,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcilePolicy{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: mgr.GetConfig()}
+	return &ReconcilePolicy{client: mgr.GetClient(), scheme: mgr.GetScheme(),
+		config: mgr.GetConfig(), recorder: mgr.GetEventRecorderFor("policy-template-sync")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -63,9 +66,10 @@ var _ reconcile.Reconciler = &ReconcilePolicy{}
 type ReconcilePolicy struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
-	config *rest.Config
+	client   client.Client
+	scheme   *runtime.Scheme
+	config   *rest.Config
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a Policy object and makes changes based on the state read
@@ -86,6 +90,10 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			reqLogger.Info("Policy not found, may have been deleted, reconciliation completed.")
+			// r.recorder.Event(&policiesv1.Policy{ObjectMeta: metav1.ObjectMeta{
+			// 	Name:      request.Name,
+			// 	Namespace: request.Namespace,
+			// }}, "Normal", "PolicyTemplateSync", fmt.Sprintf("Policy %s was deleted successfully", request.Name))
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -121,6 +129,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		if err != nil {
 			// failed to decode PolicyTemplate, skipping it, should throw violation
 			reqLogger.Error(err, "Failed to decode policy template...")
+			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to decode policy template with err: %s", err))
 			break
 		}
 		var rsrc schema.GroupVersionResource
@@ -129,7 +138,8 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			rsrc = mapping.Resource
 		} else {
 			// mapping not found, should create a violation event
-			reqLogger.Error(err, "Mapping not found")
+			reqLogger.Error(err, "Mapping not found...")
+			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Mapping not found with err: %s", err))
 			return reconcile.Result{}, nil
 
 		}
@@ -175,12 +185,15 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 				if err != nil {
 					// failed to create policy template
 					reqLogger.Error(err, "Failed to create policy template...", "PolicyTemplateName", tName)
+					r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to create policy template %s", tName))
 					return reconcile.Result{}, err
 				}
 				reqLogger.Info("Policy template created successfully...", "PolicyTemplateName", tName)
+				r.recorder.Event(instance, "Normal", "PolicyTemplateSync", fmt.Sprintf("Policy template %s was created successfully", tName))
 
 			}
 			// other error
+			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to create policy template %s", tName))
 			return reconcile.Result{}, err
 		}
 		// got object, need to compare and update
@@ -201,9 +214,11 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			_, err = res.Update(eObject, metav1.UpdateOptions{})
 			if err != nil {
 				reqLogger.Error(err, "Failed to update policy template...", "PolicyTemplateName", tName)
+				r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to update policy template %s", tName))
 				return reconcile.Result{}, err
 			}
 			reqLogger.Info("existing object has been updated...", "PolicyTemplateName", tName)
+			r.recorder.Event(instance, "Normal", "PolicyTemplateSync", fmt.Sprintf("Policy template %s was updated successfully", tName))
 		}
 	}
 	reqLogger.Info("Reconciliation complete.")

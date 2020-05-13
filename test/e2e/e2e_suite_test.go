@@ -28,8 +28,7 @@ var (
 	clientManaged             kubernetes.Interface
 	clientManagedDynamic      dynamic.Interface
 	gvrPolicy                 schema.GroupVersionResource
-	gvrPlacementBinding       schema.GroupVersionResource
-	gvrPlacementRule          schema.GroupVersionResource
+	gvrEvent                  schema.GroupVersionResource
 	gvrTrustedContainerPolicy schema.GroupVersionResource
 	kubeconfigHub             string
 	kubeconfigManaged         string
@@ -52,9 +51,8 @@ func init() {
 var _ = BeforeSuite(func() {
 	By("Setup Hub client")
 	gvrPolicy = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "policies"}
-	gvrPlacementBinding = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "placementbindings"}
-	gvrPlacementRule = schema.GroupVersionResource{Group: "apps.open-cluster-management.io", Version: "v1", Resource: "placementrules"}
 	gvrTrustedContainerPolicy = schema.GroupVersionResource{Group: "policies.ibm.com", Version: "v1alpha1", Resource: "trustedcontainerpolicies"}
+	gvrEvent = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "events"}
 	clientManaged = NewKubeClient("", "", "")
 	clientManagedDynamic = NewKubeClientDynamic("", "", "")
 	defaultImageRegistry = "quay.io/open-cluster-management"

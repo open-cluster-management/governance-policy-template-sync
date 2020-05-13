@@ -1,7 +1,7 @@
 apiVersion: policies.open-cluster-management.io/v1
 kind: Policy
 metadata:
-  name: default.case2-test-policy-template-not-exist
+  name: default.case2-template-decode-error
   labels:
     policies.open-cluster-management.io/cluster-name: managed
     policies.open-cluster-management.io/cluster-namespace: managed
@@ -12,7 +12,7 @@ spec:
   policy-templates:
     - objectDefinition:
         apiVersion: policies.ibm.com/v1alpha1
-        kind: NotExistPolicy
+        # kind: NotExistPolicy # missing kind
         metadata:
           name: case1-test-policy-trustedcontainerpolicy
         spec:
