@@ -29,7 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("policy-template-sync")
+const controllerName string = "policy-template-sync"
+
+var log = logf.Log.WithName(controllerName)
 
 // Add creates a new Policy Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -40,13 +42,13 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcilePolicy{client: mgr.GetClient(), scheme: mgr.GetScheme(),
-		config: mgr.GetConfig(), recorder: mgr.GetEventRecorderFor("policy-template-sync")}
+		config: mgr.GetConfig(), recorder: mgr.GetEventRecorderFor(controllerName)}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("policy-template-sync", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -131,7 +133,8 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		if err != nil {
 			// failed to decode PolicyTemplate, skipping it, should throw violation
 			reqLogger.Error(err, "Failed to decode policy template...")
-			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to decode policy template with err: %s", err))
+			r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
+				fmt.Sprintf("Failed to decode policy template with err: %s", err))
 			break
 		}
 		var rsrc schema.GroupVersionResource
@@ -181,15 +184,18 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 				if err != nil {
 					// failed to create policy template
 					reqLogger.Error(err, "Failed to create policy template...", "PolicyTemplateName", tName)
-					r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to create policy template %s", tName))
+					r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
+						fmt.Sprintf("Failed to create policy template %s", tName))
 					return reconcile.Result{}, err
 				}
 				reqLogger.Info("Policy template created successfully...", "PolicyTemplateName", tName)
-				r.recorder.Event(instance, "Normal", "PolicyTemplateSync", fmt.Sprintf("Policy template %s was created successfully", tName))
+				r.recorder.Event(instance, "Normal", "PolicyTemplateSync",
+					fmt.Sprintf("Policy template %s was created successfully", tName))
 
 			}
 			// other error
-			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to create policy template %s", tName))
+			r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
+				fmt.Sprintf("Failed to create policy template %s", tName))
 			return reconcile.Result{}, err
 		}
 
@@ -203,11 +209,13 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			_, err = res.Update(eObject, metav1.UpdateOptions{})
 			if err != nil {
 				reqLogger.Error(err, "Failed to update policy template...", "PolicyTemplateName", tName)
-				r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to update policy template %s", tName))
+				r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
+					fmt.Sprintf("Failed to update policy template %s", tName))
 				return reconcile.Result{}, err
 			}
 			reqLogger.Info("existing object has been updated...", "PolicyTemplateName", tName)
-			r.recorder.Event(instance, "Normal", "PolicyTemplateSync", fmt.Sprintf("Policy template %s was updated successfully", tName))
+			r.recorder.Event(instance, "Normal", "PolicyTemplateSync",
+				fmt.Sprintf("Policy template %s was updated successfully", tName))
 		}
 	}
 	reqLogger.Info("Reconciliation complete.")
