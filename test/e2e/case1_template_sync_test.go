@@ -62,4 +62,12 @@ var _ = Describe("Test spec sync", func() {
 		Expect(plc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[common.ClusterNamespaceLabel]).To(
 			utils.SemanticEqual(trustedPlc.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["cluster-namespace"]))
 	})
+	It("should delete template policy on managed cluster", func() {
+		By("Deleting parent policy")
+		utils.Kubectl("delete", "-f", case1PolicyYaml, "-n", testNamespace)
+		opt := metav1.ListOptions{}
+		utils.ListWithTimeout(clientManagedDynamic, gvrPolicy, opt, 0, true, defaultTimeoutSeconds)
+		By("Checking the existence of template policy")
+		utils.GetWithTimeout(clientManagedDynamic, gvrTrustedContainerPolicy, cast1TrustedContainerPolicyName, testNamespace, false, defaultTimeoutSeconds)
+	})
 })
