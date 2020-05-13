@@ -49,7 +49,7 @@ func init() {
 }
 
 var _ = BeforeSuite(func() {
-	By("Setup Hub client")
+	By("Setup client")
 	gvrPolicy = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "policies"}
 	gvrTrustedContainerPolicy = schema.GroupVersionResource{Group: "policies.ibm.com", Version: "v1alpha1", Resource: "trustedcontainerpolicies"}
 	gvrEvent = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "events"}
