@@ -119,10 +119,12 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			reqLogger.Error(err, "Failed to create dynamic client")
 			return reconcile.Result{}, err
 		}
-
+	} else {
+		reqLogger.Info("Spec.PolicyTemplates is empty, nothing to reconcile.")
+		return reconcile.Result{}, nil
 	}
 
-	// found
+	// PolicyTemplates is not empty
 	// loop through policy templates
 	for _, policyT := range instance.Spec.PolicyTemplates {
 		object, gvk, err := unstructured.UnstructuredJSONScheme.Decode(policyT.ObjectDefinition.Raw, nil, nil)
@@ -141,8 +143,8 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			reqLogger.Error(err, "Mapping not found...")
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Mapping not found with err: %s", err))
 			return reconcile.Result{}, nil
-
 		}
+		// fetch resource
 		res := dClient.Resource(rsrc).Namespace(instance.GetNamespace())
 		tName := object.(metav1.Object).GetName()
 		tObjectUnstructured := &unstructured.Unstructured{}
@@ -172,15 +174,9 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 				}
 				tObjectUnstructured.SetLabels(labels)
 				tObjectUnstructured.SetOwnerReferences([]metav1.OwnerReference{plcOwnerReferences})
-				// override RemediationAction only when it is set on parent
-				if instance.Spec.RemediationAction != "" {
-					if spec, ok := tObjectUnstructured.Object["spec"]; ok {
-						specObject := spec.(map[string]interface{})
-						if _, ok := specObject["remediationAction"]; ok {
-							specObject["remediationAction"] = instance.Spec.RemediationAction
-						}
-					}
-				}
+
+				overrideRemediationAction(instance, tObjectUnstructured)
+
 				_, err = res.Create(tObjectUnstructured, metav1.CreateOptions{})
 				if err != nil {
 					// failed to create policy template
@@ -196,17 +192,10 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", fmt.Sprintf("Failed to create policy template %s", tName))
 			return reconcile.Result{}, err
 		}
+
+		overrideRemediationAction(instance, tObjectUnstructured)
 		// got object, need to compare and update
 		eObjectUnstructured := eObject.UnstructuredContent()
-		// override RemediationAction only when it is set on parent
-		if instance.Spec.RemediationAction != "" {
-			if spec, ok := tObjectUnstructured.Object["spec"]; ok {
-				specObject := spec.(map[string]interface{})
-				if _, ok := specObject["remediationAction"]; ok {
-					specObject["remediationAction"] = instance.Spec.RemediationAction
-				}
-			}
-		}
 		if !equality.Semantic.DeepEqual(eObjectUnstructured["spec"], tObjectUnstructured.Object["spec"]) {
 			// doesn't match
 			reqLogger.Info("existing object and template don't match, updating...", "PolicyTemplateName", tName)
@@ -223,4 +212,16 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 	}
 	reqLogger.Info("Reconciliation complete.")
 	return reconcile.Result{}, nil
+}
+
+func overrideRemediationAction(instance *policiesv1.Policy, tObjectUnstructured *unstructured.Unstructured) {
+	// override RemediationAction only when it is set on parent
+	if instance.Spec.RemediationAction != "" {
+		if spec, ok := tObjectUnstructured.Object["spec"]; ok {
+			specObject := spec.(map[string]interface{})
+			if _, ok := specObject["remediationAction"]; ok {
+				specObject["remediationAction"] = instance.Spec.RemediationAction
+			}
+		}
+	}
 }
