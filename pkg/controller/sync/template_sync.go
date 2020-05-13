@@ -36,11 +36,6 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	// dclient, err := dynamic.NewForConfig(mgr.GetConfig())
-	// if err != nil {
-	// 	log.Error(err, "")
-	// 	os.Exit(1)
-	// }
 	return &ReconcilePolicy{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: mgr.GetConfig()}
 }
 
@@ -96,16 +91,26 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
+	// initialize restmapper
+	clientset := kubernetes.NewForConfigOrDie(r.config)
+	dd := clientset.Discovery()
+	apigroups, err := restmapper.GetAPIGroupResources(dd)
+	if err != nil {
+		reqLogger.Error(err, "Failed to create restmapper")
+		return reconcile.Result{}, err
+	}
+	restmapper := restmapper.NewDiscoveryRESTMapper(apigroups)
+
+	// initialize dynamic client
+	dClient, err := dynamic.NewForConfig(r.config)
+	if err != nil {
+		reqLogger.Error(err, "Failed to create dynamic client")
+		return reconcile.Result{}, err
+	}
+
 	// found
 	// loop through policy templates
 	for _, policyT := range instance.Spec.PolicyTemplates {
-		clientset := kubernetes.NewForConfigOrDie(r.config)
-		dd := clientset.Discovery()
-		apigroups, err := restmapper.GetAPIGroupResources(dd)
-		if err != nil {
-			// throw err
-		}
-		restmapper := restmapper.NewDiscoveryRESTMapper(apigroups)
 		object, gvk, err := unstructured.UnstructuredJSONScheme.Decode(policyT.ObjectDefinition.Raw, nil, nil)
 		if err != nil {
 			// failed to decode PolicyTemplate, skipping it, should throw violation
@@ -121,10 +126,6 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			reqLogger.Error(err, "Mapping not found")
 			return reconcile.Result{}, nil
 
-		}
-		dClient, err := dynamic.NewForConfig(r.config)
-		if err != nil {
-			reqLogger.Error(err, "Failed to create dynamic client")
 		}
 		res := dClient.Resource(rsrc).Namespace(instance.GetNamespace())
 		tName := object.(metav1.Object).GetName()
@@ -155,10 +156,13 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 				}
 				tObjectUnstructured.SetLabels(labels)
 				tObjectUnstructured.SetOwnerReferences([]metav1.OwnerReference{plcOwnerReferences})
-				if spec, ok := tObjectUnstructured.Object["spec"]; ok {
-					specObject := spec.(map[string]interface{})
-					if _, ok := specObject["remediationAction"]; ok {
-						specObject["remediationAction"] = instance.Spec.RemediationAction
+				// override RemediationAction only when it is set on parent
+				if instance.Spec.RemediationAction != "" {
+					if spec, ok := tObjectUnstructured.Object["spec"]; ok {
+						specObject := spec.(map[string]interface{})
+						if _, ok := specObject["remediationAction"]; ok {
+							specObject["remediationAction"] = instance.Spec.RemediationAction
+						}
 					}
 				}
 				_, err = res.Create(tObjectUnstructured, metav1.CreateOptions{})
@@ -175,10 +179,13 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		}
 		// got object, need to compare and update
 		eObjectUnstructured := eObject.UnstructuredContent()
-		if spec, ok := tObjectUnstructured.Object["spec"]; ok {
-			specObject := spec.(map[string]interface{})
-			if _, ok := specObject["remediationAction"]; ok {
-				specObject["remediationAction"] = instance.Spec.RemediationAction
+		// override RemediationAction only when it is set on parent
+		if instance.Spec.RemediationAction != "" {
+			if spec, ok := tObjectUnstructured.Object["spec"]; ok {
+				specObject := spec.(map[string]interface{})
+				if _, ok := specObject["remediationAction"]; ok {
+					specObject["remediationAction"] = instance.Spec.RemediationAction
+				}
 			}
 		}
 		if !equality.Semantic.DeepEqual(eObjectUnstructured["spec"], tObjectUnstructured.Object["spec"]) {

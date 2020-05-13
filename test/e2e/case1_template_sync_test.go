@@ -11,7 +11,7 @@ import (
 )
 
 const case1PolicyName string = "default.case1-test-policy"
-const case1PolicyYaml string = "../resources/case1-test-policy.yaml"
+const case1PolicyYaml string = "../resources/case1_template_sync/case1-test-policy.yaml"
 const cast1TrustedContainerPolicyName string = "case1-test-policy-trustedcontainerpolicy"
 
 var _ = Describe("Test spec sync", func() {
@@ -29,7 +29,7 @@ var _ = Describe("Test spec sync", func() {
 	})
 	It("should create policy template on managed cluster", func() {
 		By("Checking the trustedcontainerpolicy CR")
-		yamlTrustedPlc := utils.ParseYaml("../resources/case1-trusted-container-policy.yaml")
+		yamlTrustedPlc := utils.ParseYaml("../resources/case1_template_sync/case1-trusted-container-policy.yaml")
 		Eventually(func() interface{} {
 			trustedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrTrustedContainerPolicy, cast1TrustedContainerPolicyName, testNamespace, true, defaultTimeoutSeconds)
 			return trustedPlc.Object["spec"]
@@ -43,7 +43,7 @@ var _ = Describe("Test spec sync", func() {
 		Expect(err).To(BeNil())
 		Expect(plc.Object["spec"].(map[string]interface{})["remediationAction"]).To(Equal("enforce"))
 		By("Checking template policy remediationAction")
-		yamlTrustedPlc := utils.ParseYaml("../resources/case1-trusted-container-policy-enforce.yaml")
+		yamlTrustedPlc := utils.ParseYaml("../resources/case1_template_sync/case1-trusted-container-policy-enforce.yaml")
 		Eventually(func() interface{} {
 			trustedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrTrustedContainerPolicy, cast1TrustedContainerPolicyName, testNamespace, true, defaultTimeoutSeconds)
 			return trustedPlc.Object["spec"]
