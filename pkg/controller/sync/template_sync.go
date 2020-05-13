@@ -9,6 +9,7 @@ import (
 	"github.com/open-cluster-management/governance-policy-propagator/pkg/controller/common"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -91,21 +92,26 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
-	// initialize restmapper
-	clientset := kubernetes.NewForConfigOrDie(r.config)
-	dd := clientset.Discovery()
-	apigroups, err := restmapper.GetAPIGroupResources(dd)
-	if err != nil {
-		reqLogger.Error(err, "Failed to create restmapper")
-		return reconcile.Result{}, err
-	}
-	restmapper := restmapper.NewDiscoveryRESTMapper(apigroups)
+	var rMapper meta.RESTMapper
+	var dClient dynamic.Interface
+	if len(instance.Spec.PolicyTemplates) > 0 {
+		// initialize restmapper
+		clientset := kubernetes.NewForConfigOrDie(r.config)
+		dd := clientset.Discovery()
+		apigroups, err := restmapper.GetAPIGroupResources(dd)
+		if err != nil {
+			reqLogger.Error(err, "Failed to create restmapper")
+			return reconcile.Result{}, err
+		}
+		rMapper = restmapper.NewDiscoveryRESTMapper(apigroups)
 
-	// initialize dynamic client
-	dClient, err := dynamic.NewForConfig(r.config)
-	if err != nil {
-		reqLogger.Error(err, "Failed to create dynamic client")
-		return reconcile.Result{}, err
+		// initialize dynamic client
+		dClient, err = dynamic.NewForConfig(r.config)
+		if err != nil {
+			reqLogger.Error(err, "Failed to create dynamic client")
+			return reconcile.Result{}, err
+		}
+
 	}
 
 	// found
@@ -118,7 +124,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			break
 		}
 		var rsrc schema.GroupVersionResource
-		mapping, err := restmapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+		mapping, err := rMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if mapping != nil {
 			rsrc = mapping.Resource
 		} else {

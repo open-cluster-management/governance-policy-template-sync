@@ -23,7 +23,7 @@ var _ = Describe("Test error handling", func() {
 		utils.Kubectl("apply", "-f", "../resources/case2_error_test/remediation-action-not-exists2.yaml",
 			"-n", testNamespace)
 		By("Checking the case2-remedation-action-not-exsits-trustedcontainerpolicy CR")
-		yamlTrustedPlc := utils.ParseYaml("../resources/case2_error_test/case2-remedation-action-not-exsits-trustedcontainerpolicy.yaml")
+		yamlTrustedPlc := utils.ParseYaml("../resources/case2_error_test/remedation-action-not-exsits-trustedcontainerpolicy.yaml")
 		Eventually(func() interface{} {
 			trustedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrTrustedContainerPolicy,
 				"case2-remedation-action-not-exsits-trustedcontainerpolicy", testNamespace, true, defaultTimeoutSeconds)
@@ -31,6 +31,16 @@ var _ = Describe("Test error handling", func() {
 		}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual(yamlTrustedPlc.Object["spec"]))
 		By("Deleting ../resources/case2_error_test/remediation-action-not-exists.yaml to clean up")
 		utils.Kubectl("delete", "-f", "../resources/case2_error_test/remediation-action-not-exists.yaml",
+			"-n", testNamespace)
+		utils.ListWithTimeout(clientManagedDynamic, gvrPolicy, metav1.ListOptions{}, 0, true, defaultTimeoutSeconds)
+	})
+	It("should not break if no spec", func() {
+		By("Creating ../resources/case2_error_test/no-spec.yaml on managed cluster in ns:" + testNamespace)
+		utils.Kubectl("apply", "-f", "../resources/case2_error_test/no-spec.yaml",
+			"-n", testNamespace)
+		utils.GetWithTimeout(clientManagedDynamic, gvrPolicy, "default.case2-no-spec", testNamespace, true, defaultTimeoutSeconds)
+		By("Deleting ../resources/case2_error_test/no-spec.yam to clean up")
+		utils.Kubectl("delete", "-f", "../resources/case2_error_test/no-spec.yaml",
 			"-n", testNamespace)
 		utils.ListWithTimeout(clientManagedDynamic, gvrPolicy, metav1.ListOptions{}, 0, true, defaultTimeoutSeconds)
 	})
