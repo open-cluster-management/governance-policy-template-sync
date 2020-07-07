@@ -51,7 +51,7 @@ var _ = Describe("Test spec sync", func() {
 	})
 	It("should still override remediationAction in spec when there is no remediationAction", func() {
 		By("Updating policy with no remediationAction")
-		utils.Kubectl("apply", "-f", "./resources/case1_template_sync/case1-test-policy-no-remediation.yaml", "-n", testNamespace)
+		utils.Kubectl("apply", "-f", "../resources/case1_template_sync/case1-test-policy-no-remediation.yaml", "-n", testNamespace)
 		By("Checking template policy remediationAction")
 		yamlTrustedPlc := utils.ParseYaml("../resources/case1_template_sync/case1-trusted-container-policy-enforce.yaml")
 		Eventually(func() interface{} {
