@@ -67,8 +67,9 @@ var _ = Describe("Test error handling", func() {
 		By("Creating event with decode err on managed cluster in ns:" + testNamespace)
 		eventList := utils.ListWithTimeout(clientManagedDynamic, gvrEvent, metav1.ListOptions{FieldSelector: "involvedObject.name=default.case2-template-mapping-error"}, 2, true, defaultTimeoutSeconds)
 		By("Deleting the event to clean up")
-		event := eventList.Items[0]
-		utils.Kubectl("delete", "event", event.GetName(), "-n", testNamespace)
+		for _, event := range eventList.Items {
+			utils.Kubectl("delete", "event", event.GetName(), "-n", testNamespace)
+		}
 		eventList = utils.ListWithTimeout(clientManagedDynamic, gvrEvent, metav1.ListOptions{FieldSelector: "involvedObject.name=default.case2-template-mapping-error"}, 0, true, defaultTimeoutSeconds)
 		By("Deleting ../resources/case2_error_test/template-mapping-error.yaml to clean up")
 		utils.Kubectl("delete", "-f", "../resources/case2_error_test/template-mapping-error.yaml",
