@@ -16,17 +16,17 @@ var _ = Describe("Test error handling", func() {
 			"-n", testNamespace)
 		Eventually(func() interface{} {
 			trustedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrTrustedContainerPolicy,
-				"case2-remedation-action-not-exsits-trustedcontainerpolicy", testNamespace, true, defaultTimeoutSeconds)
+				"case2-remedation-action-not-exists-trustedcontainerpolicy", testNamespace, true, defaultTimeoutSeconds)
 			return trustedPlc.Object["spec"].(map[string]interface{})["remediationAction"]
 		}, defaultTimeoutSeconds, 1).Should(Equal("inform"))
 		By("Patching ../resources/case2_error_test/remediation-action-not-exists2.yaml on managed cluster in ns:" + testNamespace)
 		utils.Kubectl("apply", "-f", "../resources/case2_error_test/remediation-action-not-exists2.yaml",
 			"-n", testNamespace)
-		By("Checking the case2-remedation-action-not-exsits-trustedcontainerpolicy CR")
-		yamlTrustedPlc := utils.ParseYaml("../resources/case2_error_test/remedation-action-not-exsits-trustedcontainerpolicy.yaml")
+		By("Checking the case2-remedation-action-not-exists-trustedcontainerpolicy CR")
+		yamlTrustedPlc := utils.ParseYaml("../resources/case2_error_test/remedation-action-not-exists-trustedcontainerpolicy.yaml")
 		Eventually(func() interface{} {
 			trustedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrTrustedContainerPolicy,
-				"case2-remedation-action-not-exsits-trustedcontainerpolicy", testNamespace, true, defaultTimeoutSeconds)
+				"case2-remedation-action-not-exists-trustedcontainerpolicy", testNamespace, true, defaultTimeoutSeconds)
 			return trustedPlc.Object["spec"]
 		}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual(yamlTrustedPlc.Object["spec"]))
 		By("Deleting ../resources/case2_error_test/remediation-action-not-exists.yaml to clean up")
