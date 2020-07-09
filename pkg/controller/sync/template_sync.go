@@ -143,7 +143,8 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
 				fmt.Sprintf("Mapping not found with err: %s", err))
 			mappingErrMsg := fmt.Sprintf("NonCompliant; %s, please check if you have CRD deployed.", err)
-			r.recorder.Event(instance, "Warning", fmt.Sprintf("policy: %s/%s", instance.GetNamespace(), object.(metav1.Object).GetName()), mappingErrMsg)
+			r.recorder.Event(instance, "Warning",
+				fmt.Sprintf("policy: %s/%s", instance.GetNamespace(), object.(metav1.Object).GetName()), mappingErrMsg)
 			break
 		}
 		// fetch resource
