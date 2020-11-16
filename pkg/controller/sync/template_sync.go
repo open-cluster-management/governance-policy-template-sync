@@ -209,6 +209,18 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			return reconcile.Result{}, err
 		}
 
+		refName := string(eObject.GetOwnerReferences()[0].Name)
+		fmt.Println(fmt.Sprintf("------ object ref name for %s---------", tName))
+		fmt.Println(refName)
+		fmt.Println(instance.GetName())
+		//violation if object reference and policy don't match
+		if instance.GetName() != refName {
+			alreadyExistsErrMsg := fmt.Sprintf("NonCompliant; %s already exists in template sync controller", tName)
+			r.recorder.Event(instance, "Warning",
+				fmt.Sprintf("policy: %s/%s", instance.GetNamespace(), tName), alreadyExistsErrMsg)
+			break
+		}
+
 		overrideRemediationAction(instance, tObjectUnstructured)
 		// got object, need to compare and update
 		eObjectUnstructured := eObject.UnstructuredContent()
