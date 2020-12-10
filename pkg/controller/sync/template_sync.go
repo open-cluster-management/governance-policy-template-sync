@@ -131,7 +131,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			reqLogger.Error(err, "Failed to decode policy template...")
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
 				fmt.Sprintf("Failed to decode policy template with err: %s", err))
-			break
+			continue
 		}
 		var rsrc schema.GroupVersionResource
 		mapping, err := rMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
@@ -145,7 +145,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			mappingErrMsg := fmt.Sprintf("NonCompliant; %s, please check if you have CRD deployed.", err)
 			r.recorder.Event(instance, "Warning",
 				fmt.Sprintf("policy: %s/%s", instance.GetNamespace(), object.(metav1.Object).GetName()), mappingErrMsg)
-			break
+			continue
 		}
 		// fetch resource
 		res := dClient.Resource(rsrc).Namespace(instance.GetNamespace())
@@ -157,7 +157,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 			reqLogger.Error(err, "Failed to unmarshal policy template...")
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync",
 				fmt.Sprintf("Failed to unmarshal policy template with err: %s", err))
-			break
+			continue
 		}
 		eObject, err := res.Get(tName, metav1.GetOptions{})
 		if err != nil {
@@ -212,9 +212,13 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		refName := string(eObject.GetOwnerReferences()[0].Name)
 		//violation if object reference and policy don't match
 		if instance.GetName() != refName {
-			alreadyExistsErrMsg := fmt.Sprintf("NonCompliant; %s already exists in template sync controller", tName)
+			alreadyExistsErrMsg := fmt.Sprintf("NonCompliant; %s already exists in policy %s", tName, refName)
+			r.recorder.Event(instance, "Warning",
+				fmt.Sprintf("policy: %s/%s", instance.GetNamespace(), tName), alreadyExistsErrMsg)
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", alreadyExistsErrMsg)
-			break
+			reqLogger.Error(errors.NewBadRequest(alreadyExistsErrMsg), "Failed to create policy template...",
+				"PolicyTemplateName", tName)
+			continue
 		}
 
 		overrideRemediationAction(instance, tObjectUnstructured)
