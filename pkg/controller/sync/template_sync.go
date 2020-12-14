@@ -213,9 +213,9 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		refName := string(eObject.GetOwnerReferences()[0].Name)
 		//violation if object reference and policy don't match
 		if instance.GetName() != refName {
-			alreadyExistsErrMsg := fmt.Sprintf("NonCompliant; %s already exists in policy %s", tName, refName)
+			alreadyExistsErrMsg := fmt.Sprintf("%s already exists in policy %s", tName, refName)
 			r.recorder.Event(instance, "Warning",
-				fmt.Sprintf(policyFmtStr, instance.GetNamespace(), tName), alreadyExistsErrMsg)
+				fmt.Sprintf(policyFmtStr, instance.GetNamespace(), tName), "NonCompliant; "+alreadyExistsErrMsg)
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", alreadyExistsErrMsg)
 			reqLogger.Error(errors.NewBadRequest(alreadyExistsErrMsg), "Failed to create policy template...",
 				"PolicyTemplateName", tName)
