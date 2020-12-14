@@ -30,6 +30,7 @@ import (
 )
 
 const controllerName string = "policy-template-sync"
+const policyFmtStr string = "policy: %s/%s"
 
 var log = logf.Log.WithName(controllerName)
 
@@ -144,7 +145,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 				fmt.Sprintf("Mapping not found with err: %s", err))
 			mappingErrMsg := fmt.Sprintf("NonCompliant; %s, please check if you have CRD deployed.", err)
 			r.recorder.Event(instance, "Warning",
-				fmt.Sprintf("policy: %s/%s", instance.GetNamespace(), object.(metav1.Object).GetName()), mappingErrMsg)
+				fmt.Sprintf(policyFmtStr, instance.GetNamespace(), object.(metav1.Object).GetName()), mappingErrMsg)
 			continue
 		}
 		// fetch resource
@@ -195,7 +196,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 						fmt.Sprintf("Failed to create policy template %s", tName))
 					createErrMsg := fmt.Sprintf("NonCompliant; Failed to create policy template %s", err)
 					r.recorder.Event(instance, "Warning",
-						fmt.Sprintf("policy: %s/%s", instance.GetNamespace(), object.(metav1.Object).GetName()), createErrMsg)
+						fmt.Sprintf(policyFmtStr, instance.GetNamespace(), object.(metav1.Object).GetName()), createErrMsg)
 					return reconcile.Result{}, err
 				}
 				reqLogger.Info("Policy template created successfully...", "PolicyTemplateName", tName)
@@ -214,7 +215,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		if instance.GetName() != refName {
 			alreadyExistsErrMsg := fmt.Sprintf("NonCompliant; %s already exists in policy %s", tName, refName)
 			r.recorder.Event(instance, "Warning",
-				fmt.Sprintf("policy: %s/%s", instance.GetNamespace(), tName), alreadyExistsErrMsg)
+				fmt.Sprintf(policyFmtStr, instance.GetNamespace(), tName), alreadyExistsErrMsg)
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", alreadyExistsErrMsg)
 			reqLogger.Error(errors.NewBadRequest(alreadyExistsErrMsg), "Failed to create policy template...",
 				"PolicyTemplateName", tName)
