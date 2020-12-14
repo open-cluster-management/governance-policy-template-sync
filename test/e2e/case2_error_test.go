@@ -84,7 +84,7 @@ var _ = Describe("Test error handling", func() {
 			"-n", testNamespace)
 		//wait for original policy to be processed before creating duplicate policy
 		time.Sleep(30 * time.Second)
-		utils.Kubectl("apply", "-f", "../resources/case2_error_test/working-policy.yaml",
+		utils.Kubectl("apply", "-f", "../resources/case2_error_test/working-policy-duplicate.yaml",
 			"-n", testNamespace)
 		By("Creating event with duplicate err on managed cluster in ns:" + testNamespace)
 		eventList := utils.ListWithTimeout(clientManagedDynamic, gvrEvent, metav1.ListOptions{FieldSelector: "involvedObject.name=default.case2-test-policy-duplicate"}, 2, true, defaultTimeoutSeconds)
