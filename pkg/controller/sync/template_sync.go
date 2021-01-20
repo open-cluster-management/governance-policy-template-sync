@@ -215,10 +215,9 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		if instance.GetName() != refName {
 			alreadyExistsErrMsg := fmt.Sprintf(
 				"Template name must be unique. Policy template with kind: %s name: %s already exists in policy %s",
-				tObjectUnstructured.GetObjectKind(),
+				tObjectUnstructured.Object["kind"],
 				tName,
-				refName
-			)
+				refName)
 			r.recorder.Event(instance, "Warning",
 				fmt.Sprintf(policyFmtStr, instance.GetNamespace(), tName), "NonCompliant; "+alreadyExistsErrMsg)
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", alreadyExistsErrMsg)
