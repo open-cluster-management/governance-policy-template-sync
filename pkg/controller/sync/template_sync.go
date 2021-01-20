@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Red Hat, Inc.
+// Copyright (c) 2021 Red Hat, Inc.
 package sync
 
 import (
@@ -215,7 +215,7 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		if instance.GetName() != refName {
 			alreadyExistsErrMsg := fmt.Sprintf(
 				"Template name must be unique. Policy template with kind: %s name: %s already exists in policy %s",
-				instance.GetObjectKind(),
+				tObjectUnstructured.GetObjectKind(),
 				tName,
 				refName
 			)
