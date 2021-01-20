@@ -213,7 +213,12 @@ func (r *ReconcilePolicy) Reconcile(request reconcile.Request) (reconcile.Result
 		refName := string(eObject.GetOwnerReferences()[0].Name)
 		//violation if object reference and policy don't match
 		if instance.GetName() != refName {
-			alreadyExistsErrMsg := fmt.Sprintf("%s already exists in policy %s", tName, refName)
+			alreadyExistsErrMsg := fmt.Sprintf(
+				"Template name must be unique. Policy template with kind: %s name: %s already exists in policy %s",
+				instance.GetObjectKind(),
+				tName,
+				refName
+			)
 			r.recorder.Event(instance, "Warning",
 				fmt.Sprintf(policyFmtStr, instance.GetNamespace(), tName), "NonCompliant; "+alreadyExistsErrMsg)
 			r.recorder.Event(instance, "Warning", "PolicyTemplateSync", alreadyExistsErrMsg)
