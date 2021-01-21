@@ -88,6 +88,14 @@ var _ = Describe("Test error handling", func() {
 			"-n", testNamespace)
 		By("Creating event with duplicate err on managed cluster in ns:" + testNamespace)
 		eventList := utils.ListWithTimeout(clientManagedDynamic, gvrEvent, metav1.ListOptions{FieldSelector: "involvedObject.name=default.case2-test-policy-duplicate"}, 2, true, defaultTimeoutSeconds)
+		violationStringFound := false
+		for _, event := range eventList.Items {
+			if event.Object["message"] == "NonCompliant; Template name must be unique. Policy template with kind: TrustedContainerPolicy name: case2-test-policy-trustedcontainerpolicy already exists in policy default.case2-test-policy" {
+				violationStringFound = true
+				break
+			}
+		}
+		Expect(violationStringFound).To(BeTrue())
 		By("Deleting the event to clean up")
 		for _, event := range eventList.Items {
 			utils.Kubectl("delete", "event", event.GetName(), "-n", testNamespace)
