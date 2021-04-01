@@ -179,9 +179,9 @@ endif
 
 kind-deploy-controller: check-env
 	@echo installing policy-template-sync
-	kubectl create ns $(KIND_NAMEPACE)
-	kubectl create secret -n $(KIND_NAMEPACE) docker-registry multiclusterhub-operator-pull-secret --docker-server=quay.io --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS}
-	kubectl apply -f deploy/ -n $(KIND_NAMEPACE)
+	kubectl create ns $(KIND_NAMESPACE)
+	kubectl create secret -n $(KIND_NAMESPACE) docker-registry multiclusterhub-operator-pull-secret --docker-server=quay.io --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS}
+	kubectl apply -f deploy/ -n $(KIND_NAMESPACE)
 
 kind-deploy-controller-dev:
 	@echo Pushing image to KinD cluster
