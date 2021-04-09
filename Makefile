@@ -45,7 +45,7 @@ VERSION ?= $(shell cat COMPONENT_VERSION 2> /dev/null)
 IMAGE_NAME_AND_VERSION ?= $(REGISTRY)/$(IMG)
 # Handle KinD configuration
 KIND_NAME ?= test-managed
-KIND_NAMESPACE ?= multicluster-endpoint
+KIND_NAMESPACE ?= open-cluster-management-agent-addon
 KIND_VERSION ?= latest
 ifneq ($(KIND_VERSION), latest)
 	KIND_ARGS = --image kindest/node:$(KIND_VERSION)
