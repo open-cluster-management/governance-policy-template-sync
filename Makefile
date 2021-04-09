@@ -161,7 +161,6 @@ endif
 kind-deploy-controller: check-env
 	@echo installing policy-template-sync
 	kubectl create ns multicluster-endpoint
-	kubectl create secret -n multicluster-endpoint docker-registry multiclusterhub-operator-pull-secret --docker-server=quay.io --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS}
 	kubectl apply -f deploy/ -n multicluster-endpoint
 
 kind-create-cluster:
@@ -173,7 +172,7 @@ kind-delete-cluster:
 
 install-crds:
 	@echo installing crds
-	kubectl apply -f deploy/crds/policy.open-cluster-management.io_policies_crd.yaml
+	https://raw.githubusercontent.com/open-cluster-management/governance-policy-propagator/main/deploy/crds/policy.open-cluster-management.io_policies_crd.yaml
 
 install-resources:
 	@echo creating namespaces
