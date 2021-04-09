@@ -1,4 +1,6 @@
 // Copyright (c) 2020 Red Hat, Inc.
+// Copyright Contributors to the Open Cluster Management project
+
 package main
 
 import (
@@ -85,7 +87,7 @@ func main() {
 	// Set default manager options
 	options := manager.Options{
 		Namespace:          namespace,
-    MetricsBindAddress: "0",
+		MetricsBindAddress: "0",
 	}
 
 	// Add support for MultiNamespace set in WATCH_NAMESPACE (e.g ns1,ns2)
@@ -126,4 +128,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
